@@ -2,9 +2,11 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
+from google.colab import drive
 
+drive.mount('/content/drive')
 
-df = pd.read_csv("transactions.csv")
+df = pd.read_csv("/content/drive/My Drive/transactions.csv")
 
 
 scaler = StandardScaler()
