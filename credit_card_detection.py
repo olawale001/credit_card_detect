@@ -1,35 +1,40 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Dense
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report
-from google.colab import drive
+from sklearn.metrics import roc_auc_score
 
-drive.mount('/content/drive')
 
-df = pd.read_csv("/content/drive/My Drive/creditcard.csv")
-print(df.isnull().sum())
+df = pd.read_csv("transactions.csv")
 
-print(df["class"].value_counts())
-x = df.drop(colunms=["class"])
-y = df["class"]
 
 scaler = StandardScaler()
-x_scaled = scaler.fit_transform(x)
-x_train, x_test, y_train, y_test = train_test_split(x_scaled, y, test_size=0.2, random_state=42)
+X_scaled = scaler.fit_transform(df.drop(columns=["is_fraud"]))
 
-model = RandomForestClassifier()
-model.fit(x_train, y_train)
-y_pred = model.predict(x_test)
+input_dim = X_scaled.shape[1]
+encoding_dim = 8
 
-print("Accuracy:", accuracy_score(y_test, y_pred))
-print(classification_report(y_test, y_pred))
+input_layer = Input(shape=(input_dim,))
+encoded = Dense(16, activation="relu")(input_layer)
+encoded = Dense(encoding_dim, activation="relu")(encoded)
 
-plt.figure(figsize=(12,6))
-sns.barplot(x=df.columns[:-1], y=model.feature_importances_)
-plt.xticks(rotation=90)
-plt.title("Feature Importance")
-plt.show()
+decoded = Dense(16, activation="relu")(encoded)
+decoded = Dense(input_dim, activation="sigmoid")(decoded)
+
+autoencoder = Model(input_layer, decoded)
+autoencoder.compile(optimizer="adam", loss="mse")
+
+
+autoencoder.fit(X_scaled, X_scaled, epochs=50, batch_size=32)
+
+
+reconstructions = autoencoder.predict(X_scaled)
+mse = np.mean(np.power(X_scaled - reconstructions, 2), axis=1)
+
+
+threshold = np.percentile(mse, 95)
+df["fraud_score"] = mse
+df["is_anomaly"] = df["fraud_score"] > threshold
+
+
+auc = roc_auc_score(df["is_fraud"], df["fraud_score"])
+print(f"AUC Score: {auc}")
