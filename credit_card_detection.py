@@ -6,9 +6,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
+from google.colab import drive
 
+drive.mount('/content/drive')
 
-df = pd.read_csv("creditcard.csv")
+df = pd.read_csv("/content/drive/My Drive/creditcard.csv")
 print(df.isnull().sum())
 
 print(df["class"].value_counts())
